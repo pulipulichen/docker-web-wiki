@@ -6,3 +6,5 @@ port http://localhost:8000/
 default password: password
 
 https://pulipulichen.github.io/docker-web-wiki/docker-compose.yml
+
+https://pulipulichen.github.io/docker-web-wiki/udocker.sh
