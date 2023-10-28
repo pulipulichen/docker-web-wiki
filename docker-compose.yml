@@ -1,0 +1,10 @@
+version: "3"
+services:
+  app:
+    #build: .
+    image: pudding/docker-web:pwiki-20231029-0259
+    tty: true
+    ports:
+      - "8000:80"
+    volumes: 
+      - ./runtime:/var/www/html/
