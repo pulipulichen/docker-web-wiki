@@ -151,7 +151,7 @@ getCloudflarePublicURL() {
     # File path
   file_path="/tmp/.cloudflared.${PROJECT_NAME}.out"
 
-  /tmp/.cloudflared --url "http://127.0.0.1:${port}" &> "${file_path}" &
+  nohup /tmp/.cloudflared --url "http://127.0.0.1:${port}" &> "${file_path}" &
 
   sleep 3
 
@@ -202,7 +202,7 @@ runDockerCompose() {
     fi
   fi
 
-  echo "m ${must_sudo}"
+  #echo "m ${must_sudo}"
 
   if [ "$PUBLIC_PORT" == "false" ]; then
     if [ "$must_sudo" == "false" ]; then
@@ -260,6 +260,16 @@ cleanup() {
   exit 1
 }
 
+getRealpath() {
+  path="$1"
+  if command -v realpath &> /dev/null; then
+    path=`realpath "${path}"`
+  else
+    path=$(cd "$(dirname "${path}")"; pwd)/"$(basename "${path}")"
+  fi
+  echo "${path}"
+}
+
 # -----------------
 # 執行指令
 
@@ -271,11 +281,7 @@ if [ "$INPUT_FILE" != "false" ]; then
       cd "${WORK_DIR}"
       
 
-      if command -v realpath &> /dev/null; then
-        var=`realpath "${var}"`
-      else
-        var=$(cd "$(dirname "${var}")"; pwd)/"$(basename "${var}")"
-      fi
+      var=getRealpath "${var}"
       cd "/tmp/${PROJECT_NAME}"
       setDockerComposeYML "${var}"
 
@@ -293,9 +299,13 @@ if [ "$INPUT_FILE" != "false" ]; then
 else
   # Get the directory path of the script
   var=$(dirname "$0")
+  var=$(getRealpath "${var}")
+  #echo "v ${var}"
 
   cd "/tmp/${PROJECT_NAME}"
   setDockerComposeYML "${var}"
+
+  #cat "/tmp/${PROJECT_NAME}/docker-compose.yml"
 
   runDockerCompose
 fi
