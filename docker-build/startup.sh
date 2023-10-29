@@ -2,7 +2,7 @@
 
 # ----------------------------------------------------------------
 
-rsync --ignore-existing -r /docker-build/app/ /var/www/html/
+rsync --ignore-existing -r /docker-build/app/ "${LOCAL_VOLUMN_PATH}"
 chmod -R 777 "${SHARED_PATH}/*"
 
 # ----------------------------------------------------------------
@@ -44,7 +44,9 @@ getCloudflarePublicURL() {
   echo "$url"
 }
 
-getCloudflarePublicURL "${EXPOSE_PORT}" > "${SHARED_PATH}/cloudflare.txt"
+getCloudflarePublicURL "${EXPOSE_PORT}" > "${LOCAL_VOLUMN_PATH}/.cloudflare.url"
+
+
 
 # ----------------------------------------------------------------
 

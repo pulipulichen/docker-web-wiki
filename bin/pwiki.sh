@@ -155,7 +155,7 @@ fi
 # 宣告函數
 
 getCloudflarePublicURL() {
-  cloudflare_file="${SCRIPT_PATH}/${PROJECT_NAME}/cloudflare.txt"
+  cloudflare_file="${SCRIPT_PATH}/${PROJECT_NAME}/.cloudflare.url"
 
   # Wait until the file exists
   while [ ! -f "$cloudflare_file" ]; do
