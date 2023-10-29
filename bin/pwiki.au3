@@ -1,11 +1,15 @@
 #include <MsgBoxConstants.au3>
 #include <FileConstants.au3>
+#include <InetConstants.au3>
+#include <WinAPIFiles.au3>
 
 Global $sPROJECT_NAME = "docker-web-wiki"
 
 ;~ ---------------------
 
 ;~ MsgBox($MB_SYSTEMMODAL, "Title", "This message box will timeout after 10 seconds or select the OK button.", 10)
+
+MsgBox($MB_SYSTEMMODAL, $sPROJECT_NAME, "Before executing the script, it is recommended to either disable your antivirus software or add this script to the antivirus software's whitelist to prevent any unintended issues.", 30)
 Local $sWorkingDir = @WorkingDir
 
 ;~ ---------------------
@@ -74,7 +78,7 @@ FileCopy($sProjectFolder & "\package.json", $sProjectFolderCache & "\package.jso
 Local $INPUT_FILE = 0
 
 If FileExists($sProjectFolder & "\docker-compose-template.yml") Then
-  Local $fileContent = FileRead($sProjectFolder "\docker-compose-template.yml")
+  Local $fileContent = FileRead($sProjectFolder & "\docker-compose-template.yml")
   If StringInStr($fileContent, "[INPUT]") Then
     $INPUT_FILE = 1
   EndIf
@@ -131,74 +135,107 @@ EndIf
 ;~ 宣告函數
 
 Func getCloudflarePublicURL()
+	;ConsoleWrite("getCloudflarePublicURL"  & @CRLF)
     Local $dirname = @ScriptDir
 
-    Local $cloudflare_file = $dirname & "\" & $PROJECT_NAME & "\.cloudflare.url"
+    Local $cloudflareFile = $dirname & "" & $sPROJECT_NAME & "\.cloudflare.url"
+	;ConsoleWrite($cloudflareFile  & @CRLF)
 
-    While Not FileExists($cloudflare_file)
-        Sleep(1000) ; Check every 1 second
+    While Not FileExists($cloudflareFile)
+        Sleep(3000) ; Check every 1 second
     WEnd
 
-    Local $fileContent = FileRead($cloudflare_file)
+    Local $fileContent = FileRead($cloudflareFile)
+	While StringStripWS($fileContent, 1 + 2) = ""
+        Sleep(3000) ; Check every 1 second
+		$fileContent = FileRead($cloudflareFile)
+    WEnd
+	;ConsoleWrite($fileContent  & @CRLF)
     Return $fileContent
 EndFunc
 
 ;~ ----------------------------------------------------------------
 
 Func setDockerComposeYML($file)
+	;ConsoleWrite($file)
     Local $dirname = StringLeft($file, StringInStr($file, "\", 0, -1) - 1)
+	If StringLeft($dirname, 1) = '"' Then
+		$dirname = StringTrimLeft($dirname, 1)
+	EndIf
+	
     Local $filename = StringMid($file, StringInStr($file, "\", 0, -1) + 1)
 
     Local $template = FileRead($sProjectFolder & "\docker-compose-template.yml")
+	;ConsoleWrite($template)
+	
     $template = StringReplace($template, "[SOURCE]", $dirname)
     $template = StringReplace($template, "[INPUT]", $filename)
 
+	FileDelete($sProjectFolder & "\docker-compose.yml")
     FileWrite($sProjectFolder & "\docker-compose.yml", $template)
+	;ConsoleWrite($template & @CRLF)
+	
 EndFunc
 
 ;~ ----------------------------------------------------------------
 
 Func waitForConnection($port)
     Sleep(3000) ; Wait for 3 seconds
+	Local $sURL = "http://127.0.0.1:" & $port
 
-    While True
-        $curlOutput = Run(@ComSpec & ' /c curl -sSf "http://127.0.0.1:' & $port & '" > nul 2>&1', @SystemDir, @SW_HIDE, $STDERR_CHILD + $STDOUT_CHILD)
+	Local $sFilePath = _WinAPI_GetTempFileName(@TempDir)
 
-        If $curlOutput = 0 Then
-            ConsoleWrite("Connection successful." & @CRLF)
-            ExitLoop
-        Else
-            ; ConsoleWrite("Connection failed. Retrying in 5 seconds..." & @CRLF)
-            Sleep(5000)
-        EndIf
-    WEnd
+	While 1
+		Local $iResult = InetGet($sURL, $sFilePath, $INET_FORCERELOAD)
+		If $iResult <> -1 Then
+			ConsoleWrite("Connection successful." & @CRLF)
+			ExitLoop
+		EndIf
+
+		ConsoleWrite("Connection failed. Retrying in 5 seconds..." & @CRLF)
+		Sleep(5000) ; Wait for 5 seconds before retrying
+	WEnd
 EndFunc
 
 ;~ ----------------------------------------------------------------
 
 Func runDockerCompose()
+	Local $dirname = StringLeft(@ScriptDir, StringInStr(@ScriptDir, "\", 0, -1) - 1)
+	Local $cloudflareFile = $dirname & "\" & $sPROJECT_NAME & "\.cloudflare.url"
+	If FileExists($cloudflareFile) Then
+		FileDelete($cloudflareFile)
+	EndIf
+	
+	RunWait(@ComSpec & " /c docker-compose down")
 	If $PUBLIC_PORT = 0 then
-		docker-compose up --build
+		RunWait(@ComSpec & " /c docker-compose up --build")
 		Exit(1)
 	Else
-		sudo docker-compose up --build -d
+		RunWait(@ComSpec & " /c docker-compose up --build -d")
 	EndIf
 
 	waitForConnection($PUBLIC_PORT)
+	
+	;ConsoleWrite("getCloudflarePublicURL" & @CRLF)
+	
 	Local $cloudflare_url=getCloudflarePublicURL()
 
-	Sleep(10000)
+	Sleep(1000)
 
 	ConsoleWrite("================================================================" & @CRLF)
 	ConsoleWrite("You can link the website via following URL:" & @CRLF)
 	ConsoleWrite(@CRLF)
 
-	ConsoleWrite($cloudflare_url & @CRLF)
+	ConsoleWrite($cloudflare_url)
 	ConsoleWrite("http://127.0.0.1:" & $PUBLIC_PORT & @CRLF)
 
 	ConsoleWrite(@CRLF)
 	ConsoleWrite("Press Ctrl+C to stop the Docker container and exit." & @CRLF)
 	ConsoleWrite("================================================================" & @CRLF)
+	
+	Sleep(3000)
+	;ShellExecute($cloudflare_url, "", "open", @SW_HIDE)
+	ShellExecute($cloudflare_url)
 	
 	While True
     Sleep(5000) ; Sleep for 1 second (1000 milliseconds)
