@@ -171,7 +171,7 @@ getCloudflarePublicURL() {
 
 setDockerComposeYML() {
   file="$1"
-  echo "input: ${file}"
+  #echo "input: ${file}"
 
   filename=$(basename "$file")
   dirname=$(dirname "$file")
