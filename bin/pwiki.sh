@@ -155,12 +155,14 @@ fi
 # 宣告函數
 
 getCloudflarePublicURL() {
-  cloudflare_file="${SCRIPT_PATH}/${PROJECT_NAME}/.cloudflare.url"
+  dirname=$(dirname "$SCRIPT_PATH")
+  cloudflare_file="${dirname}/${PROJECT_NAME}/.cloudflare.url"
 
-  echo "c ${cloudflare_file}"
+  # echo "c ${cloudflare_file}"
 
   # Wait until the file exists
   while [ ! -f "$cloudflare_file" ]; do
+    # echo "not exists ${cloudflare_file}"
     sleep 1  # Check every 1 second
   done
 
@@ -234,7 +236,8 @@ runDockerCompose() {
 
     waitForConntaction $PUBLIC_PORT
 
-    cloudflare_url=$(getCloudflarePublicURL $PUBLIC_PORT)
+    cloudflare_url=$(getCloudflarePublicURL)
+    # cloudflare_url=$(<"${SCRIPT_PATH}/${PROJECT_NAME}/.cloudflare.url")
 
     sleep 10
     #/tmp/.cloudflared --url "http://127.0.0.1:$PUBLIC_PORT" > /tmp/.cloudflared.out 
@@ -243,8 +246,10 @@ runDockerCompose() {
     echo "You can link the website via following URL:"
     echo ""
 
-    openURL "http://127.0.0.1:$PUBLIC_PORT"
-    echo "${cloudflare_url}"
+    # openURL "http://127.0.0.1:$PUBLIC_PORT"
+    # echo "${cloudflare_url}"
+    openURL "${cloudflare_url}"
+    echo "http://127.0.0.1:$PUBLIC_PORT"
     
     echo ""
     # Keep the script running to keep the container running
