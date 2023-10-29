@@ -6,4 +6,4 @@ services:
     ports:
       - "8000:80"
     volumes: 
-      - ./runtime:/var/www/html/
+      - ./docker-web-wiki:/var/www/html/
