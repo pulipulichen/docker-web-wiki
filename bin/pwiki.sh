@@ -150,7 +150,7 @@ runDockerCompose() {
   fi
 
   if [ "$PUBLIC_PORT" != "false" ]; then
-    if [ "$must_sudo" != "false" ]; then
+    if [ "$must_sudo" == "false" ]; then
       if ! docker-compose up --build; then
         echo "Error occurred. Trying with sudo..."
         sudo docker-compose up --build
@@ -162,7 +162,7 @@ runDockerCompose() {
     # Set up a trap to catch Ctrl+C and call the cleanup function
     trap 'cleanup' INT
 
-    if [ "$must_sudo" != "false" ]; then
+    if [ "$must_sudo" == "false" ]; then
       if ! docker-compose up --build -d; then
         echo "Error occurred. Trying with sudo..."
         sudo docker-compose up --build -d
