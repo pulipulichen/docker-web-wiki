@@ -133,6 +133,14 @@ fi
 # =================================================================
 # 宣告函數
 
+setupCloudflare() {
+  file="/tmp/.cloudflared"
+  if [ ! -z "$file" ]; then
+    wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O "${file}"
+    chmod a+x "${file}"
+  fi
+}
+
 setDockerComposeYML() {
   file="$1"
   echo "${file}"
@@ -148,6 +156,20 @@ setDockerComposeYML() {
   template="${template/\[INPUT\]/$filename}"
 
   echo "$template" > "/tmp/${PROJECT_NAME}/docker-compose.yml"
+}
+
+waitForConntaction() {
+  port="$1"
+  sleep 3
+  while true; do
+    if curl -sSf "http://127.0.0.1:$port" >/dev/null 2>&1; then
+      echo "Connection successful."
+      break
+    else
+      #echo "Connection failed. Retrying in 5 seconds..."
+      sleep 5
+    fi
+  done
 }
 
 runDockerCompose() {
@@ -182,13 +204,17 @@ runDockerCompose() {
       sudo docker-compose up --build -d
     fi
 
+    waitForConntaction $PUBLIC_PORT
+
+    setupCloudflare
+
     echo "================================================================"
+    echo "You can link the website via following URL:"
+    echo ""
+
     openURL "http://127.0.0.1:$PUBLIC_PORT"
 
-    echo "You can link the website via following URL:"
-    echo "http://127.0.0.1:$PUBLIC_PORT"
-
-    echo ""
+    /tmp/.cloudflared --url "http://127.0.0.1:$PUBLIC_PORT"
     
     # Keep the script running to keep the container running
     # until the user decides to stop it
