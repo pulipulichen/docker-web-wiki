@@ -154,41 +154,15 @@ fi
 # =================================================================
 # 宣告函數
 
-setupCloudflare() {
-  file="/tmp/.cloudflared"
-  if [ ! -f "$file" ]; then
-    wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O "${file}"
-    chmod a+x "${file}"
-  fi
-}
-
-runCloudflare() {
-  port="$1"
-  file_path="$2"
-
-  #echo "p ${port} ${file_path}"
-
-  rm -rf "${file_path}"
-  #nohup /tmp/.cloudflared --url "http://127.0.0.1:${port}" > "${file_path}" 2>&1 &
-  /tmp/.cloudflared --url "http://127.0.0.1:${port}" > "${file_path}" 2>&1 &
-}
-
 getCloudflarePublicURL() {
-  setupCloudflare
+  cloudflare_file="${SCRIPT_PATH}/${PROJECT_NAME}/cloudflare.txt"
 
-  port="$1"
+  # Wait until the file exists
+  while [ ! -f "$cloudflare_file" ]; do
+    sleep 1  # Check every 1 second
+  done
 
-    # File path
-  file_path="/tmp/.cloudflared.${PROJECT_NAME}.out"
-
-  runCloudflare "${port}" "${file_path}" &
-
-  sleep 3
-
-  # Extracting the URL using grep and awk
-  url=$(grep -o 'https://[^ ]*\.trycloudflare\.com' "$file_path" | awk '/https:\/\/[^ ]*\.trycloudflare\.com/{print; exit}')
-
-  echo "$url"
+  echo $(<"$cloudflare_file")
 }
 
 setDockerComposeYML() {
