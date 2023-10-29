@@ -268,7 +268,8 @@ if [ "$INPUT_FILE" != "false" ]; then
     fi
   fi
 else
-  var=`pwd`
+  # Get the directory path of the script
+  var=$(dirname "$0")
 
   cd "/tmp/${PROJECT_NAME}"
   setDockerComposeYML "${var}"
