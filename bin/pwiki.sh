@@ -88,7 +88,7 @@ if [ -f "$DOCKER_COMPOSE_FILE" ]; then
   PUBLIC_PORT=$(awk '/ports:/{flag=1} flag && /- "[0-9]+:[0-9]+"/{split($2, port, ":"); gsub(/"/, "", port[1]); print port[1]; flag=0}' "$DOCKER_COMPOSE_FILE")
 fi
 
-echo "P: ${PUBLIC_PORT}"
+#echo "P: ${PUBLIC_PORT}"
 
 # =================
 # 讓Docker能順利運作的設定
@@ -160,7 +160,7 @@ runDockerCompose() {
     fi
   fi
 
-  if [ "$PUBLIC_PORT" != "false" ]; then
+  if [ "$PUBLIC_PORT" == "false" ]; then
     if [ "$must_sudo" == "false" ]; then
       if ! docker-compose up --build; then
         echo "Error occurred. Trying with sudo..."
