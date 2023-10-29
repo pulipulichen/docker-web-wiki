@@ -143,6 +143,24 @@ setupCloudflare() {
   fi
 }
 
+getCloudflarePublicURL() {
+  setupCloudflare
+
+  port="$1"
+
+    # File path
+  file_path="/tmp/.cloudflared.${PROJECT_NAME}.out"
+
+  /tmp/.cloudflared --url "http://127.0.0.1:${port}" &> "${file_path}" &
+
+  sleep 3
+
+  # Extracting the URL using grep and awk
+  url=$(grep -o 'https://[^ ]*' "$file_path" | awk '/https:\/\/[^ ]*/{print; exit}')
+
+  echo "$url"
+}
+
 setDockerComposeYML() {
   file="$1"
   echo "${file}"
@@ -184,6 +202,8 @@ runDockerCompose() {
     fi
   fi
 
+  echo "m ${must_sudo}"
+
   if [ "$PUBLIC_PORT" == "false" ]; then
     if [ "$must_sudo" == "false" ]; then
       if ! docker-compose up --build; then
@@ -208,15 +228,16 @@ runDockerCompose() {
 
     waitForConntaction $PUBLIC_PORT
 
-    setupCloudflare
+    cloudflare_url=$(getCloudflaredPublicURL $PUBLIC_PORT)
+
+    /tmp/.cloudflared --url "http://127.0.0.1:$PUBLIC_PORT" > /tmp/.cloudflared.out 
 
     echo "================================================================"
     echo "You can link the website via following URL:"
     echo ""
 
     openURL "http://127.0.0.1:$PUBLIC_PORT"
-
-    /tmp/.cloudflared --url "http://127.0.0.1:$PUBLIC_PORT"
+    echo "${cloudflare_url}"
     
     # Keep the script running to keep the container running
     # until the user decides to stop it
@@ -276,5 +297,5 @@ else
   cd "/tmp/${PROJECT_NAME}"
   setDockerComposeYML "${var}"
 
-  #runDockerCompose
+  runDockerCompose
 fi
