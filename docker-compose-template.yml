@@ -6,4 +6,4 @@ services:
     ports:
       - "8000:80"
     volumes: 
-      - [SOURCE]/docker-web-wiki:/var/www/html/
+      - "[SOURCE]/docker-web-wiki:/var/www/html/"
