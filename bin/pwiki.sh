@@ -16,8 +16,27 @@ openURL() {
   fi
 }
 
+getRealpath() {
+  path="$1"
+  if command -v realpath &> /dev/null; then
+    path=`realpath "${path}"`
+  else
+    path=$(cd "$(dirname "${path}")"; pwd)/"$(basename "${path}")"
+  fi
+  echo "${path}"
+}
+
 # ------------------
 # 確認環境
+
+# Get the directory path of the script
+SCRIPT_PATH=$(getRealpath "$0")
+# echo "v ${SCRIPT_PATH}"
+# SCRIPT_PATH=$(getRealpath "${SCRIPT_PATH}")
+
+# echo "PWD: ${SCRIPT_PATH}"
+
+# ------------------
 
 if ! command -v git &> /dev/null
 then
@@ -147,9 +166,9 @@ runCloudflare() {
   port="$1"
   file_path="$2"
 
-  echo "p ${port} ${file_path}"
+  #echo "p ${port} ${file_path}"
 
-  rm -rf "${file}"
+  rm -rf "${file_path}"
   #nohup /tmp/.cloudflared --url "http://127.0.0.1:${port}" > "${file_path}" 2>&1 &
   /tmp/.cloudflared --url "http://127.0.0.1:${port}" > "${file_path}" 2>&1 &
 }
@@ -166,24 +185,22 @@ getCloudflarePublicURL() {
 
   sleep 3
 
-  echo "OKKKKKKKKKKKKKKKKK"
-
   # Extracting the URL using grep and awk
-  url=$(grep -o 'https://[^ ]*' "$file_path" | awk '/https:\/\/[^ ]*/{print; exit}')
+  url=$(grep -o 'https://[^ ]*\.trycloudflare\.com' "$file_path" | awk '/https:\/\/[^ ]*\.trycloudflare\.com/{print; exit}')
 
   echo "$url"
 }
 
 setDockerComposeYML() {
   file="$1"
-  echo "${file}"
+  echo "input: ${file}"
 
   filename=$(basename "$file")
   dirname=$(dirname "$file")
 
 
   template=$(<"/tmp/${PROJECT_NAME}/docker-compose-template.yml")
-  echo "$template"
+  #echo "$template"
 
   template="${template/\[SOURCE\]/$dirname}"
   template="${template/\[INPUT\]/$filename}"
@@ -253,6 +270,7 @@ runDockerCompose() {
     openURL "http://127.0.0.1:$PUBLIC_PORT"
     echo "${cloudflare_url}"
     
+    echo ""
     # Keep the script running to keep the container running
     # until the user decides to stop it
     echo "Press Ctrl+C to stop the Docker container and exit"
@@ -272,16 +290,6 @@ cleanup() {
   echo "Stopping the Docker container..."
   docker-compose down
   exit 1
-}
-
-getRealpath() {
-  path="$1"
-  if command -v realpath &> /dev/null; then
-    path=`realpath "${path}"`
-  else
-    path=$(cd "$(dirname "${path}")"; pwd)/"$(basename "${path}")"
-  fi
-  echo "${path}"
 }
 
 # -----------------
@@ -311,15 +319,12 @@ if [ "$INPUT_FILE" != "false" ]; then
     fi
   fi
 else
-  # Get the directory path of the script
-  var=$(dirname "$0")
-  var=$(getRealpath "${var}")
-  #echo "v ${var}"
-
   cd "/tmp/${PROJECT_NAME}"
-  setDockerComposeYML "${var}"
 
-  cat "/tmp/${PROJECT_NAME}/docker-compose.yml"
+  # echo "PWD: ${SCRIPT_PATH}"
+  setDockerComposeYML "${SCRIPT_PATH}"
 
+  # cat "/tmp/${PROJECT_NAME}/docker-compose.yml"
+  # exit 0
   runDockerCompose
 fi
