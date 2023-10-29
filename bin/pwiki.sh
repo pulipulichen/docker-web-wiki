@@ -68,7 +68,9 @@ cp "/tmp/${PROJECT_NAME}/package.json" "/tmp/${PROJECT_NAME}.cache/"
 
 INPUT_FILE="false"
 if [ -f "/tmp/${PROJECT_NAME}/docker-compose-template.yml" ]; then
+  if grep -q "\[INPUT\]" "/tmp/${PROJECT_NAME}/docker-compose-template.yml"; then
     INPUT_FILE="true"
+  fi
 fi
 
 # --------
