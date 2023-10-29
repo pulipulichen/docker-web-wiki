@@ -137,10 +137,21 @@ fi
 
 setupCloudflare() {
   file="/tmp/.cloudflared"
-  if [ ! -z "$file" ]; then
+  if [ ! -f "$file" ]; then
     wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O "${file}"
     chmod a+x "${file}"
   fi
+}
+
+runCloudflare() {
+  port="$1"
+  file_path="$2"
+
+  echo "p ${port} ${file_path}"
+
+  rm -rf "${file}"
+  #nohup /tmp/.cloudflared --url "http://127.0.0.1:${port}" > "${file_path}" 2>&1 &
+  /tmp/.cloudflared --url "http://127.0.0.1:${port}" > "${file_path}" 2>&1 &
 }
 
 getCloudflarePublicURL() {
@@ -151,9 +162,11 @@ getCloudflarePublicURL() {
     # File path
   file_path="/tmp/.cloudflared.${PROJECT_NAME}.out"
 
-  nohup /tmp/.cloudflared --url "http://127.0.0.1:${port}" &> "${file_path}" &
+  runCloudflare "${port}" "${file_path}" &
 
   sleep 3
+
+  echo "OKKKKKKKKKKKKKKKKK"
 
   # Extracting the URL using grep and awk
   url=$(grep -o 'https://[^ ]*' "$file_path" | awk '/https:\/\/[^ ]*/{print; exit}')
@@ -230,7 +243,8 @@ runDockerCompose() {
 
     cloudflare_url=$(getCloudflarePublicURL $PUBLIC_PORT)
 
-    /tmp/.cloudflared --url "http://127.0.0.1:$PUBLIC_PORT" > /tmp/.cloudflared.out 
+    sleep 10
+    #/tmp/.cloudflared --url "http://127.0.0.1:$PUBLIC_PORT" > /tmp/.cloudflared.out 
 
     echo "================================================================"
     echo "You can link the website via following URL:"
@@ -305,7 +319,7 @@ else
   cd "/tmp/${PROJECT_NAME}"
   setDockerComposeYML "${var}"
 
-  #cat "/tmp/${PROJECT_NAME}/docker-compose.yml"
+  cat "/tmp/${PROJECT_NAME}/docker-compose.yml"
 
   runDockerCompose
 fi
