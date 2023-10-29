@@ -157,6 +157,8 @@ fi
 getCloudflarePublicURL() {
   cloudflare_file="${SCRIPT_PATH}/${PROJECT_NAME}/.cloudflare.url"
 
+  echo "c ${cloudflare_file}"
+
   # Wait until the file exists
   while [ ! -f "$cloudflare_file" ]; do
     sleep 1  # Check every 1 second
