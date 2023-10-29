@@ -2,48 +2,6 @@
 
 PROJECT_NAME=docker-web-wiki
 
-INPUT_FILE="false"
-
-# ----
-
-if [ -z "$DOCKER_HOST" ]; then
-    
-    if [[ "$(uname)" == "Darwin" ]]; then
-      echo "Running on macOS"
-    else
-      echo "DOCKER_HOST is not set, setting it to 'unix:///run/user/1000/docker.sock'"
-      export DOCKER_HOST="unix:///run/user/1000/docker.sock"
-    fi
-else
-    echo "DOCKER_HOST is set to '$DOCKER_HOST'"
-fi
-
-
-# -------------------
-# 檢查有沒有參數
-
-var="$1"
-useParams="true"
-WORK_DIR=`pwd`
-if [ "$INPUT_FILE" != "false" ]; then
-  if [ ! -f "$var" ]; then
-    # echo "$1 does not exist."
-    # exit
-    if command -v kdialog &> /dev/null; then
-      var=$(kdialog --getopenfilename --multiple ~/ 'Files')
-      
-    elif command -v osascript &> /dev/null; then
-      selected_file="$(osascript -l JavaScript -e 'a=Application.currentApplication();a.includeStandardAdditions=true;a.chooseFile({withPrompt:"Please select a file to process:"}).toString()')"
-
-      # Storing the selected file path in the "var" variable
-      var="$selected_file"
-
-    fi
-    var=`echo "${var}" | xargs`
-    useParams="false"
-  fi
-fi
-
 # =================================================================
 # 宣告函數
 
@@ -105,6 +63,62 @@ cmp --silent "/tmp/${PROJECT_NAME}/Dockerfile" "/tmp/${PROJECT_NAME}.cache/Docke
 cp "/tmp/${PROJECT_NAME}/Dockerfile" "/tmp/${PROJECT_NAME}.cache/"
 cp "/tmp/${PROJECT_NAME}/package.json" "/tmp/${PROJECT_NAME}.cache/"
 
+# =================
+# 從docker-compose-template.yml來判斷參數
+
+INPUT_FILE="false"
+if [ -f "/tmp/${PROJECT_NAME}/docker-compose-template.yml" ]; then
+    INPUT_FILE="true"
+fi
+
+# Using grep and awk to extract the public port from the docker-compose.yml file
+PUBLIC_PORT="false"
+if [ -f "/tmp/${PROJECT_NAME}/docker-compose-template.yml" ]; then
+  PUBLIC_PORT=$(grep "ports" "/tmp/${PROJECT_NAME}/docker-compose-template.yml" | awk -F "[: ]" '{print $3}')
+else
+  PUBLIC_PORT=$(grep "ports" "/tmp/${PROJECT_NAME}/docker-compose.yml" | awk -F "[: ]" '{print $3}')
+fi
+
+# =================
+# 讓Docker能順利運作的設定
+
+if [ -z "$DOCKER_HOST" ]; then
+    
+    if [[ "$(uname)" == "Darwin" ]]; then
+      echo "Running on macOS"
+    else
+      echo "DOCKER_HOST is not set, setting it to 'unix:///run/user/1000/docker.sock'"
+      export DOCKER_HOST="unix:///run/user/1000/docker.sock"
+    fi
+else
+    echo "DOCKER_HOST is set to '$DOCKER_HOST'"
+fi
+
+# -------------------
+# 檢查有沒有輸入檔案參數
+
+var="$1"
+useParams="true"
+WORK_DIR=`pwd`
+if [ "$INPUT_FILE" != "false" ]; then
+  if [ ! -f "$var" ]; then
+    # echo "$1 does not exist."
+    # exit
+    if command -v kdialog &> /dev/null; then
+      var=$(kdialog --getopenfilename --multiple ~/ 'Files')
+      
+    elif command -v osascript &> /dev/null; then
+      selected_file="$(osascript -l JavaScript -e 'a=Application.currentApplication();a.includeStandardAdditions=true;a.chooseFile({withPrompt:"Please select a file to process:"}).toString()')"
+
+      # Storing the selected file path in the "var" variable
+      var="$selected_file"
+
+    fi
+    var=`echo "${var}" | xargs`
+    useParams="false"
+  fi
+fi
+
 # =================================================================
 # 宣告函數
 
@@ -126,19 +140,64 @@ setDockerComposeYML() {
 }
 
 runDockerCompose() {
+  must_sudo="false"
   if [[ "$(uname)" == "Darwin" ]]; then
-    
     if ! chown -R $(whoami) ~/.docker; then
       sudo chown -R $(whoami) ~/.docker
-      sudo docker-compose up --build
+      must_sudo="true"
       exit 0
     fi
   fi
 
-  if ! docker-compose up --build; then
-    echo "Error occurred. Trying with sudo..."
-    sudo docker-compose up --build
+  if [ "$PUBLIC_PORT" != "false" ]; then
+    if [ "$must_sudo" != "false" ]; then
+      if ! docker-compose up --build; then
+        echo "Error occurred. Trying with sudo..."
+        sudo docker-compose up --build
+      fi
+    else
+      sudo docker-compose up --build
+    fi
+  else
+    # Set up a trap to catch Ctrl+C and call the cleanup function
+    trap 'cleanup' INT
+
+    if [ "$must_sudo" != "false" ]; then
+      if ! docker-compose up --build -d; then
+        echo "Error occurred. Trying with sudo..."
+        sudo docker-compose up --build -d
+      fi
+    else
+      sudo docker-compose up --build -d
+    fi
+
+    echo "================================================================"
+    openURL "http://127.0.0.1:$PUBLIC_PORT"
+
+    echo "You can link the website via following URL:"
+    echo "http://127.0.0.1:$PUBLIC_PORT"
+
+    echo ""
+    
+    # Keep the script running to keep the container running
+    # until the user decides to stop it
+    echo "Press Ctrl+C to stop the Docker container and exit"
+    echo "================================================================"
+
+    # Wait indefinitely, simulating a long-running process
+    # This is just to keep the script running until the user interrupts it
+    # You might replace this with an actual running process that should keep the script alive
+    while true; do
+        sleep 1
+    done
   fi
+}
+
+# Function to handle clean-up on script exit or Ctrl+C
+cleanup() {
+  echo "Stopping the Docker container..."
+  docker-compose down
+  exit 1
 }
 
 # -----------------
