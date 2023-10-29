@@ -113,6 +113,7 @@ fi
 
 # =================
 # 讓Docker能順利運作的設定
+# Linux跟Mac需要
 
 if [ -z "$DOCKER_HOST" ]; then
     
@@ -169,6 +170,8 @@ getCloudflarePublicURL() {
   echo $(<"$cloudflare_file")
 }
 
+# ----------------------------------------------------------------
+
 setDockerComposeYML() {
   file="$1"
   #echo "input: ${file}"
@@ -185,6 +188,8 @@ setDockerComposeYML() {
 
   echo "$template" > "/tmp/${PROJECT_NAME}/docker-compose.yml"
 }
+
+# ========
 
 waitForConntaction() {
   port="$1"
@@ -221,6 +226,7 @@ runDockerCompose() {
     else
       sudo docker-compose up --build
     fi
+    exit 0
   else
     # Set up a trap to catch Ctrl+C and call the cleanup function
     trap 'cleanup' INT
@@ -254,14 +260,14 @@ runDockerCompose() {
     echo ""
     # Keep the script running to keep the container running
     # until the user decides to stop it
-    echo "Press Ctrl+C to stop the Docker container and exit"
+    echo "Press Ctrl+C to stop the Docker container and exit."
     echo "================================================================"
 
     # Wait indefinitely, simulating a long-running process
     # This is just to keep the script running until the user interrupts it
     # You might replace this with an actual running process that should keep the script alive
     while true; do
-        sleep 1
+      sleep 1
     done
   fi
 }
