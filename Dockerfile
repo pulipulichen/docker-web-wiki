@@ -12,7 +12,7 @@ COPY ./docker-build/startup.sh /startup.sh
 
 ENV LOCAL_VOLUMN_PATH=/var/www/html/
 ENV SHARED_PATH=/var/www/html/.pwiki_data/
-ENV EXPOSE_PORT=80
+ENV LOCAL_PORT=80
 
 ENTRYPOINT []
 CMD ["bash", "/startup.sh"]
