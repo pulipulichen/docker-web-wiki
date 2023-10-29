@@ -228,7 +228,7 @@ runDockerCompose() {
 
     waitForConntaction $PUBLIC_PORT
 
-    cloudflare_url=$(getCloudflaredPublicURL $PUBLIC_PORT)
+    cloudflare_url=$(getCloudflarePublicURL $PUBLIC_PORT)
 
     /tmp/.cloudflared --url "http://127.0.0.1:$PUBLIC_PORT" > /tmp/.cloudflared.out 
 
