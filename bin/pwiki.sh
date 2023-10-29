@@ -268,6 +268,10 @@ if [ "$INPUT_FILE" != "false" ]; then
     fi
   fi
 else
+  var=`pwd`
+
   cd "/tmp/${PROJECT_NAME}"
-  runDockerCompose
+  setDockerComposeYML "${var}"
+
+  #runDockerCompose
 fi

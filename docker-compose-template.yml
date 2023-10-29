@@ -1,0 +1,9 @@
+version: "3"
+services:
+  app:
+    build: .
+    tty: true
+    ports:
+      - "8000:80"
+    volumes: 
+      - [SOURCE]/docker-web-wiki:/var/www/html/
