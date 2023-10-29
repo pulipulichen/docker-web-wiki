@@ -25,7 +25,7 @@ then
 
   openURL https://git-scm.com/downloads &
 
-  exit
+  exit 1
 fi
 
 if ! command -v docker-compose &> /dev/null
@@ -34,7 +34,7 @@ then
 
   openURL https://docs.docker.com/compose/install/ &
 
-  exit
+  exit 1
 fi
 
 # ---------------
@@ -71,13 +71,24 @@ if [ -f "/tmp/${PROJECT_NAME}/docker-compose-template.yml" ]; then
     INPUT_FILE="true"
 fi
 
+# --------
+
 # Using grep and awk to extract the public port from the docker-compose.yml file
 PUBLIC_PORT="false"
-if [ -f "/tmp/${PROJECT_NAME}/docker-compose-template.yml" ]; then
-  PUBLIC_PORT=$(grep "ports" "/tmp/${PROJECT_NAME}/docker-compose-template.yml" | awk -F "[: ]" '{print $3}')
-else
-  PUBLIC_PORT=$(grep "ports" "/tmp/${PROJECT_NAME}/docker-compose.yml" | awk -F "[: ]" '{print $3}')
+# Step 2: Read the public port from the docker-compose.yml file
+DOCKER_COMPOSE_FILE="/tmp/${PROJECT_NAME}/docker-compose.yml"
+
+# Check if the default Docker Compose file exists
+if [ ! -f "$DOCKER_COMPOSE_FILE" ]; then
+  # If the file doesn't exist, set an alternative file path
+  DOCKER_COMPOSE_FILE="/tmp/${PROJECT_NAME}/docker-compose-template.yml"
 fi
+
+if [ -f "$DOCKER_COMPOSE_FILE" ]; then
+  PUBLIC_PORT=$(awk '/ports:/{flag=1} flag && /- "[0-9]+:[0-9]+"/{split($2, port, ":"); gsub(/"/, "", port[1]); print port[1]; flag=0}' "$DOCKER_COMPOSE_FILE")
+fi
+
+echo "P: ${PUBLIC_PORT}"
 
 # =================
 # 讓Docker能順利運作的設定
